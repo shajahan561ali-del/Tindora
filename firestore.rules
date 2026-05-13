@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // DEFAULT DENY BY DEFAULT
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+
+    // --- ENTITY VALIDATORS ---
+    
+    function isValidUser(data) {
+      return data.uid == request.auth.uid 
+        && data.username is string && data.username.size() >= 3 && data.username.size() <= 30
+        && data.email is string && data.email.size() <= 100
+        && data.coins is number && data.coins >= 0
+        && data.followersCount is number
+        && data.followingCount is number;
+    }
+
+    function isValidVideo(data) {
+      return data.creatorId == request.auth.uid
+        && data.videoUrl is string && data.videoUrl.size() <= 1000
+        && data.caption is string && data.caption.size() <= 500
+        && data.likesCount is number
+        && data.viewsCount is number
+        && data.commentsCount is number;
+    }
+
+    function isValidReward(data) {
+      return data.amount is number
+        && data.type in ['view_reward', 'gift_sent', 'gift_received', 'referral']
+        && data.createdAt == request.time;
+    }
+
+    function isValidFollow(data) {
+      return data.createdAt == request.time;
+    }
+
+    // --- COLLECTIONS ---
+
+    // 1. USERS
+    match /users/{userId} {
+      allow get: if true;
+      allow list: if isSignedIn();
+      
+      allow create: if isOwner(userId) 
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time
+        && incoming().coins == 0;
+
+      allow update: if isOwner(userId) && (
+        // Action: Update Profile
+        (incoming().diff(existing()).affectedKeys().hasOnly(['username', 'displayName', 'photoURL', 'bio', 'updatedAt']) 
+          && incoming().updatedAt == request.time) ||
+        
+        // Action: View Reward (Small increment)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['coins', 'updatedAt'])
+          && incoming().coins == existing().coins + 5
+          && incoming().updatedAt == request.time) ||
+
+        // Action: Follow Counter Sync
+        (incoming().diff(existing()).affectedKeys().hasOnly(['followingCount', 'followersCount', 'updatedAt'])
+          && incoming().updatedAt == request.time) ||
+
+        // Action: Receive Gift (Counterpart to transaction)
+        (incoming().diff(existing()).affectedKeys().hasAny(['coins', 'totalEarnings', 'updatedAt'])
+          && incoming().updatedAt == request.time)
+      );
+    }
+
+    // 2. VIDEOS
+    match /videos/{videoId} {
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if isSignedIn() 
+        && isValidVideo(incoming())
+        && incoming().createdAt == request.time;
+
+      allow update: if isSignedIn() && (
+        // Creator updates their own video
+        (isOwner(existing().creatorId) && incoming().diff(existing()).affectedKeys().hasAny(['caption', 'tags', 'updatedAt'])
+          && incoming().updatedAt == request.time) ||
+        
+        // Public updates counters (likes, views)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likesCount', 'viewsCount', 'commentsCount'])
+          && (incoming().likesCount == existing().likesCount + 1 || incoming().likesCount == existing().likesCount - 1
+              || incoming().viewsCount == existing().viewsCount + 1))
+      );
+
+      allow delete: if isOwner(existing().creatorId);
+    }
+
+    // 3. SUBCOLLECTIONS (Followers, Following, Rewards)
+    
+    match /users/{userId}/following/{followingId} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isValidId(followingId);
+    }
+
+    match /users/{userId}/followers/{followerId} {
+      allow read: if true;
+      allow write: if isOwner(followerId) && isValidId(userId);
+    }
+
+    match /users/{userId}/rewards/{rewardId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidReward(incoming());
+      // For gift_received, the transaction writes to the creator's subcollection
+      allow write: if isSignedIn(); 
+    }
+
+    // 4. CONNECTIVITY TEST (Restricted to signed-in users)
+    match /test/{docId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

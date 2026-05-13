@@ -1,0 +1,11 @@
+{
+  "name": "Remix: Trendora",
+  "description": "A short video social media app for local creators to share talent and earn rewards.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

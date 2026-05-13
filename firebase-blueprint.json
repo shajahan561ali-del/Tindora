@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Represents a user in the Trendora platform.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "coins": { "type": "number" },
+        "totalEarnings": { "type": "number" },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username", "email", "coins", "createdAt"]
+    },
+    "Video": {
+      "title": "Short Video",
+      "description": "A short video uploaded by a creator.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "creatorPhoto": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "viewsCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["creatorId", "videoUrl", "createdAt"]
+    },
+    "Reward": {
+      "title": "Transaction Reward",
+      "description": "A reward or gift transaction.",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["view_reward", "gift_sent", "gift_received", "referral"] },
+        "videoId": { "type": "string" },
+        "giftName": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["amount", "type", "createdAt"]
+    },
+    "Follow": {
+      "title": "Follow Relationship",
+      "description": "Tracks followers and following.",
+      "type": "object",
+      "properties": {
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["createdAt"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profiles."
+    },
+    "videos": {
+      "schema": "Video",
+      "description": "Uploaded videos."
+    },
+    "users/{userId}/following": {
+      "schema": "Follow",
+      "description": "Users followed by this user."
+    },
+    "users/{userId}/followers": {
+      "schema": "Follow",
+      "description": "Users following this user."
+    },
+    "users/{userId}/rewards": {
+      "schema": "Reward",
+      "description": "Transaction history."
+    },
+    "test": {
+      "schema": { "type": "object" },
+      "description": "Connectivity test collection."
+    }
+  }
+}

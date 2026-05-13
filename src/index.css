@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --animate-spin-slow: spin 3s linear infinite;
+  --animate-spin-extra-slow: spin 6s linear infinite;
+  --animate-marquee: marquee 30s linear infinite;
+  --color-brand: #00FF66;
+  --color-dark: #050505;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+body {
+  @apply bg-[#050505] text-white antialiased selection:bg-[#00FF66] selection:text-black font-sans;
+}
+
+/* Custom transitions for views */
+.view-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.view-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+.view-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+.view-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.skew-label {
+  @apply bg-[#00FF66] text-black font-black px-3 py-1 skew-x-[-10deg] inline-block;
+}
+
+.mono-value {
+  @apply font-mono tracking-tighter;
+}
